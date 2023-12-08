@@ -7,11 +7,18 @@ use std::{
 
 #[cfg(feature = "git")]
 pub use git::Git;
+#[cfg(feature = "hg")]
+pub use hg::Hg;
+
 #[cfg(not(feature = "git"))]
 pub use Dummy as Git;
+#[cfg(not(feature = "hg"))]
+pub use Dummy as Hg;
 
 #[cfg(feature = "git")]
 mod git;
+#[cfg(feature = "hg")]
+mod hg;
 
 mod diff;
 
@@ -104,7 +111,9 @@ impl Default for DiffProviderRegistry {
     fn default() -> Self {
         // currently only git is supported
         // TODO make this configurable when more providers are added
-        let providers = vec![Git.into()];
+        // let git: Box<dyn DiffProvider> = Box::new(Git);
+        // let hg: Box<dyn DiffProvider> = Box::new(Hg);
+        let providers = vec![Git.into(), Hg.into()];
         DiffProviderRegistry { providers }
     }
 }
@@ -116,6 +125,8 @@ pub enum DiffProvider {
     Dummy(Dummy),
     #[cfg(feature = "git")]
     Git(Git),
+    #[cfg(feature = "hg")]
+    Hg(Hg),
 }
 
 impl DiffProvider {
