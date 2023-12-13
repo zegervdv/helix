@@ -2,10 +2,10 @@ use anyhow::{bail, Result};
 use arc_swap::ArcSwap;
 use std::{path::Path, sync::Arc};
 
+#[cfg(feature = "hg")]
+pub use crate::hg::Hg;
 #[cfg(feature = "git")]
 pub use git::Git;
-#[cfg(feature = "hg")]
-pub use hg::Hg;
 
 #[cfg(not(feature = "git"))]
 pub use Dummy as Git;
