@@ -197,6 +197,7 @@ pub fn file_picker(root: PathBuf, config: &helix_view::editor::Config) -> FilePi
 
     walk_builder.add_custom_ignore_filename(helix_loader::config_dir().join("ignore"));
     walk_builder.add_custom_ignore_filename(".helix/ignore");
+    walk_builder.add_custom_ignore_filename(".hgignore");
 
     // We want to exclude files that the editor can't handle yet
     let mut type_builder = TypesBuilder::new();
