@@ -4,6 +4,7 @@ pub(crate) mod typed;
 
 pub use dap::*;
 use futures_util::FutureExt;
+pub use helix_core::syntax::*;
 use helix_event::status;
 use helix_stdx::{
     path::expand_tilde,
@@ -11,7 +12,6 @@ use helix_stdx::{
 };
 use helix_vcs::{FileChange, Hunk};
 pub use lsp::*;
-pub use helix_core::syntax::*;
 use tui::text::Span;
 pub use typed::*;
 
