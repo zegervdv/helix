@@ -135,6 +135,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.get_diff_base(file),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.get_diff_base(file),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.get_diff_base(file),
         }
     }
 
@@ -143,6 +145,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.get_current_head_name(file),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.get_current_head_name(file),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.get_current_head_name(file),
         }
     }
 
@@ -155,6 +159,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.for_each_changed_file(cwd, f),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.for_each_changed_file(cwd, f),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.for_each_changed_file(cwd, f),
         }
     }
 }

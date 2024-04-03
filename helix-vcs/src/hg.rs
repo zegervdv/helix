@@ -5,11 +5,12 @@ use std::sync::Arc;
 
 use std::process::Command;
 
-use crate::DiffProvider;
+use crate::{DiffProvider, FileChange};
 
 #[cfg(test)]
 mod test;
 
+#[derive(Clone, Copy)]
 pub struct Hg;
 
 fn exec_hg_cmd_raw(bin: &str, args: &str, root: Option<&str>) -> Result<Vec<u8>> {
@@ -83,10 +84,14 @@ impl Hg {
             Err(_) => bail!("not in a hg repo"),
         }
     }
+
+    fn status(cwd: &Path, f: impl Fn(Result<FileChange>) -> bool) -> Result<()> {
+        Ok(())
+    }
 }
 
-impl DiffProvider for Hg {
-    fn get_diff_base(&self, file: &Path) -> Result<Vec<u8>> {
+impl Hg {
+    pub fn get_diff_base(&self, file: &Path) -> Result<Vec<u8>> {
         debug_assert!(!file.exists() || file.is_file());
         debug_assert!(file.is_absolute());
 
@@ -99,7 +104,7 @@ impl DiffProvider for Hg {
         Ok(content)
     }
 
-    fn get_current_head_name(&self, file: &Path) -> Result<Arc<ArcSwap<Box<str>>>> {
+    pub fn get_current_head_name(&self, file: &Path) -> Result<Arc<ArcSwap<Box<str>>>> {
         debug_assert!(!file.exists() || file.is_file());
         debug_assert!(file.is_absolute());
 
@@ -112,5 +117,19 @@ impl DiffProvider for Hg {
         )
         .context("could not get branch name")?;
         Ok(Arc::new(ArcSwap::from_pointee(branch.into_boxed_str())))
+    }
+
+    pub fn for_each_changed_file(
+        &self,
+        cwd: &Path,
+        f: impl Fn(Result<FileChange>) -> bool,
+    ) -> Result<()> {
+        Self::status(cwd, f)
+    }
+}
+
+impl From<Hg> for DiffProvider {
+    fn from(value: Hg) -> Self {
+        DiffProvider::Hg(value)
     }
 }
