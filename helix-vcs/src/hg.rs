@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use arc_swap::ArcSwap;
 use std::path::{Path, PathBuf};
+use std::str;
 use std::sync::Arc;
 
 use std::process::Command;
@@ -62,23 +63,27 @@ impl Hg {
                     bail!("did not find root")
                 };
 
-                let arg = format!("files {}", path.to_str().unwrap());
-                match exec_hg_cmd("rhg", &arg, Some(root)) {
-                    Ok(output) => {
-                        let tracked = output
-                            .strip_suffix("\n")
-                            .or(output.strip_suffix("\r\n"))
-                            .unwrap_or(output.as_str());
+                if path.is_dir() {
+                    Ok(Path::new(&root).to_path_buf())
+                } else {
+                    let arg = format!("files {}", path.to_str().unwrap());
+                    match exec_hg_cmd("rhg", &arg, Some(root)) {
+                        Ok(output) => {
+                            let tracked = output
+                                .strip_suffix("\n")
+                                .or(output.strip_suffix("\r\n"))
+                                .unwrap_or(output.as_str());
 
-                        if (output.len() > 0)
-                            && (Path::new(tracked) == path.strip_prefix(root).unwrap())
-                        {
-                            Ok(Path::new(&root).to_path_buf())
-                        } else {
-                            bail!("not a tracked file")
+                            if (output.len() > 0)
+                                && (Path::new(tracked) == path.strip_prefix(root).unwrap())
+                            {
+                                Ok(Path::new(&root).to_path_buf())
+                            } else {
+                                bail!("not a tracked file")
+                            }
                         }
+                        Err(_) => bail!("not a tracked file"),
                     }
-                    Err(_) => bail!("not a tracked file"),
                 }
             }
             Err(_) => bail!("not in a hg repo"),
@@ -86,6 +91,49 @@ impl Hg {
     }
 
     fn status(cwd: &Path, f: impl Fn(Result<FileChange>) -> bool) -> Result<()> {
+        let root = Self::get_repo_root(cwd).context("not a hg repo")?;
+        let arg = format!("status {} --copies -Tjson", cwd.to_str().unwrap());
+        let content =
+            exec_hg_cmd_raw("hg", &arg, root.to_str()).context("could not get file content")?;
+        let json: serde_json::Value =
+            serde_json::from_str(str::from_utf8(&content)?).context("invalid status response")?;
+
+        if let Some(states) = json.as_array() {
+            for state in states {
+                let change = match state["status"].as_str().unwrap() {
+                    "M" => {
+                        let path = PathBuf::from(state["path"].as_str().unwrap());
+                        if !state["unresolved"].as_bool().is_none() {
+                            FileChange::Conflict { path }
+                        } else {
+                            FileChange::Modified { path }
+                        }
+                    }
+                    "R" => {
+                        let path = PathBuf::from(state["path"].as_str().unwrap());
+                        FileChange::Deleted { path }
+                    }
+                    "A" => {
+                        let path = PathBuf::from(state["path"].as_str().unwrap());
+                        match state["source"].as_str() {
+                            Some(source) => {
+                                let source_path = PathBuf::from(source);
+                                FileChange::Renamed {
+                                    from_path: source_path,
+                                    to_path: path,
+                                }
+                            }
+                            _ => continue,
+                        }
+                    }
+                    _ => continue,
+                };
+                if !f(Ok(change)) {
+                    break;
+                }
+            }
+        }
+
         Ok(())
     }
 }

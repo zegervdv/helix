@@ -111,8 +111,6 @@ impl Default for DiffProviderRegistry {
     fn default() -> Self {
         // currently only git is supported
         // TODO make this configurable when more providers are added
-        // let git: Box<dyn DiffProvider> = Box::new(Git);
-        // let hg: Box<dyn DiffProvider> = Box::new(Hg);
         let providers = vec![Git.into(), Hg.into()];
         DiffProviderRegistry { providers }
     }
