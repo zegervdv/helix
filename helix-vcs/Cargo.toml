@@ -20,6 +20,7 @@ parking_lot = "0.12"
 arc-swap = { version = "1.7.1" }
 
 gix = { version = "0.61.0", features = ["attributes", "status"], default-features = false, optional = true }
+hg-core = { path = '../vendor/mercurial-devel/rust/hg-core' , optional = true }
 imara-diff = "0.1.5"
 anyhow = "1"
 
@@ -27,6 +28,7 @@ log = "0.4"
 
 [features]
 git = ["gix"]
+hg = ["hg-core"]
 
 [dev-dependencies]
 tempfile = "3.10"

@@ -5,13 +5,20 @@ use std::{
     sync::Arc,
 };
 
+#[cfg(feature = "hg")]
+pub use crate::hg::Hg;
 #[cfg(feature = "git")]
 pub use git::Git;
+
 #[cfg(not(feature = "git"))]
 pub use Dummy as Git;
+#[cfg(not(feature = "hg"))]
+pub use Dummy as Hg;
 
 #[cfg(feature = "git")]
 mod git;
+#[cfg(feature = "hg")]
+mod hg;
 
 mod diff;
 
@@ -104,7 +111,7 @@ impl Default for DiffProviderRegistry {
     fn default() -> Self {
         // currently only git is supported
         // TODO make this configurable when more providers are added
-        let providers = vec![Git.into()];
+        let providers = vec![Git.into(), Hg.into()];
         DiffProviderRegistry { providers }
     }
 }
@@ -116,6 +123,8 @@ pub enum DiffProvider {
     Dummy(Dummy),
     #[cfg(feature = "git")]
     Git(Git),
+    #[cfg(feature = "hg")]
+    Hg(Hg),
 }
 
 impl DiffProvider {
@@ -124,6 +133,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.get_diff_base(file),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.get_diff_base(file),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.get_diff_base(file),
         }
     }
 
@@ -132,6 +143,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.get_current_head_name(file),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.get_current_head_name(file),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.get_current_head_name(file),
         }
     }
 
@@ -144,6 +157,8 @@ impl DiffProvider {
             Self::Dummy(inner) => inner.for_each_changed_file(cwd, f),
             #[cfg(feature = "git")]
             Self::Git(inner) => inner.for_each_changed_file(cwd, f),
+            #[cfg(feature = "hg")]
+            Self::Hg(inner) => inner.for_each_changed_file(cwd, f),
         }
     }
 }
