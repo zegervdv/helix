@@ -7,6 +7,8 @@ use std::{
 
 #[cfg(feature = "git")]
 mod git;
+#[cfg(feature = "hg")]
+mod hg;
 
 mod diff;
 
@@ -75,6 +77,8 @@ impl Default for DiffProviderRegistry {
         let providers = vec![
             #[cfg(feature = "git")]
             DiffProvider::Git,
+            #[cfg(feature = "hg")]
+            DiffProvider::Hg,
         ];
         DiffProviderRegistry { providers }
     }
@@ -88,6 +92,8 @@ impl Default for DiffProviderRegistry {
 pub enum DiffProvider {
     #[cfg(feature = "git")]
     Git,
+    #[cfg(feature = "hg")]
+    Hg,
     None,
 }
 
@@ -96,6 +102,8 @@ impl DiffProvider {
         match self {
             #[cfg(feature = "git")]
             Self::Git => git::get_diff_base(file),
+            #[cfg(feature = "hg")]
+            Self::Hg => hg::get_diff_base(file),
             Self::None => bail!("No diff support compiled in"),
         }
     }
@@ -104,6 +112,8 @@ impl DiffProvider {
         match self {
             #[cfg(feature = "git")]
             Self::Git => git::get_current_head_name(file),
+            #[cfg(feature = "hg")]
+            Self::Hg => hg::get_current_head_name(file),
             Self::None => bail!("No diff support compiled in"),
         }
     }
@@ -116,6 +126,8 @@ impl DiffProvider {
         match self {
             #[cfg(feature = "git")]
             Self::Git => git::for_each_changed_file(cwd, f),
+            #[cfg(feature = "hg")]
+            Self::Hg => hg::for_each_changed_file(cwd, f),
             Self::None => bail!("No diff support compiled in"),
         }
     }
