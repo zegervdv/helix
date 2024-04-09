@@ -76,9 +76,10 @@ pub fn increment(selected_text: &str, amount: i64) -> Option<String> {
 
     let word: String = selected_text.chars().filter(|&c| c != SEPARATOR).collect();
 
+    let number = &word[pattern.prefix.len()..];
+    log::warn!("Number = {:?}", number);
     let mut new_text = match pattern.base {
         Base::Base10 => {
-            let number = &word;
             let value = i128::from_str_radix(number, pattern.base as u32).ok()?;
             let new_value = value.saturating_add(amount as i128);
 
@@ -91,12 +92,10 @@ pub fn increment(selected_text: &str, amount: i64) -> Option<String> {
             if number.starts_with('0') || number.starts_with("-0") {
                 format!("{:01$}", new_value, format_length)
             } else {
-                format!("{}", new_value)
+                format!("{}{}", pattern.prefix, new_value)
             }
         }
         _ => {
-            let number = &word[pattern.prefix.len()..];
-            log::warn!("Number = {:?}", number);
             let value = u128::from_str_radix(number, pattern.base as u32).ok()?;
             let new_value = (value as i128).saturating_add(amount as i128);
             let new_value = if new_value < 0 { 0 } else { new_value };
@@ -170,6 +169,8 @@ mod test {
             ("-1", 2, "1"),
             ("1", -1, "0"),
             ("1", -2, "-1"),
+            ("32'd100", 1, "32'd101"),
+            ("32'd100", -1, "32'd99"),
         ];
 
         for (original, amount, expected) in tests {
