@@ -285,30 +285,6 @@ pub struct Picker<T: 'static + Send + Sync, D: 'static> {
 }
 
 impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
-    pub fn stream(
-        columns: impl IntoIterator<Item = Column<T, D>>,
-        editor_data: D,
-    ) -> (Nucleo<T>, Injector<T, D>) {
-        let columns: Arc<[_]> = columns.into_iter().collect();
-        let matcher_columns = columns.iter().filter(|col| col.filter).count() as u32;
-        assert!(matcher_columns > 0);
-        let matcher = Nucleo::new(
-            Config::DEFAULT,
-            Arc::new(helix_event::request_redraw),
-            None,
-            matcher_columns,
-        );
-        let streamer = Injector {
-            dst: matcher.injector(),
-            columns,
-            editor_data: Arc::new(editor_data),
-            version: 0,
-            picker_version: Arc::new(AtomicUsize::new(0)),
-            _redraw: helix_event::RequestRedrawOnDrop,
-        };
-        (matcher, streamer)
-    }
-
     pub fn new<C, O, F>(
         columns: C,
         primary_column: usize,
@@ -334,41 +310,6 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         for item in options {
             inject_nucleo_item(&injector, &columns, item, &editor_data);
         }
-        Self::with(
-            matcher,
-            columns,
-            primary_column,
-            Arc::new(editor_data),
-            Arc::new(AtomicUsize::new(0)),
-            callback_fn,
-        )
-    }
-
-    pub fn with_stream(
-        matcher: Nucleo<T>,
-        primary_column: usize,
-        injector: Injector<T, D>,
-        callback_fn: impl Fn(&mut Context, &T, Action) + 'static,
-    ) -> Self {
-        Self::with(
-            matcher,
-            injector.columns,
-            primary_column,
-            injector.editor_data,
-            injector.picker_version,
-            callback_fn,
-        )
-    }
-
-    fn with(
-        matcher: Nucleo<T>,
-        columns: Arc<[Column<T, D>]>,
-        default_column: usize,
-        editor_data: Arc<D>,
-        version: Arc<AtomicUsize>,
-        callback_fn: impl Fn(&mut Context, &T, Action) + 'static,
-    ) -> Self {
-        assert!(!columns.is_empty());
 
         let prompt = Prompt::new(
             "".into(),
@@ -382,14 +323,14 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             .map(|column| Constraint::Length(column.name.chars().count() as u16))
             .collect();
 
-        let query = PickerQuery::new(columns.iter().map(|col| &col.name).cloned(), default_column);
+        let query = PickerQuery::new(columns.iter().map(|col| &col.name).cloned(), primary_column);
 
         Self {
             columns,
-            primary_column: default_column,
+            primary_column,
             matcher,
-            editor_data,
-            version,
+            editor_data: Arc::new(editor_data),
+            version: Arc::new(AtomicUsize::new(0)),
             cursor: 0,
             prompt,
             query,
