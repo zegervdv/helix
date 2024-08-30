@@ -325,8 +325,15 @@ fn directory_content(path: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
     }
     dirs.sort();
     files.sort();
-    dirs.extend(files);
-    Ok(dirs)
+
+    let mut content = Vec::new();
+    if path.parent().is_some() {
+        log::warn!("{}", path.to_string_lossy());
+        content.insert(0, path.join(".."));
+    }
+    content.extend(dirs);
+    content.extend(files);
+    Ok(content)
 }
 
 pub mod completers {
